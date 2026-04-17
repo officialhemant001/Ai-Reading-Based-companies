@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% load static %}
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ARC Reader – Text Processing</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="{% static 'css/shared.css' %}" rel="stylesheet"/>
+  <style>
+    .text-panel { background:#fff; border:1.5px solid var(--arc-border); border-radius:var(--arc-radius); padding:1.4rem; min-height:320px; font-size:.9rem; line-height:2; color:var(--arc-text); }
+    .keyword-hover { cursor:pointer; transition:all .15s; }
+    .keyword-hover:hover { background:#fff176; border-radius:3px; }
+    .complexity-meter { display:flex; gap:4px; }
+    .meter-block { width:16px; height:16px; border-radius:4px; background:var(--arc-border); }
+    .meter-block.filled { background:var(--arc-blue); }
+    .reading-level { font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+    .panel-label { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--arc-muted); margin-bottom:.5rem; }
+    .simplify-btn { font-size:.8rem; }
+    .explain-popup { display:none; position:fixed; z-index:9999; background:#fff; border:1.5px solid var(--arc-border); border-radius:12px; padding:1rem 1.2rem; max-width:280px; box-shadow:0 10px 40px rgba(0,0,0,.15); font-size:.83rem; }
+  </style>
+</head>
+<body style="font-family:'Poppins',sans-serif;">
+
+<div id="arc-navbar"></div>
+
+<div class="arc-page-tabs">
+  <ul class="nav">
+    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}"><i class="bi bi-grid me-1"></i>Dashboard</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'text_input' %}"><i class="bi bi-upload me-1"></i>Text Input</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'image_capture' %}"><i class="bi bi-camera me-1"></i>Image Capture</a></li>
+    <li class="nav-item"><a class="nav-link active" href="{% url 'text_processing' %}"><i class="bi bi-cpu me-1"></i>Processing</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'summarization' %}"><i class="bi bi-card-text me-1"></i>Summarize</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'notes' %}"><i class="bi bi-journal-text me-1"></i>Notes</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'learning' %}"><i class="bi bi-graph-up me-1"></i>Learning</a></li>
+  </ul>
+</div>
+
+<div class="arc-page-header">
+  <h4><i class="bi bi-cpu me-2 text-primary"></i>Text Processing</h4>
+  <p class="text-muted mb-0" style="font-size:.85rem;">Machine Learning Basics – Chapter 1 · 42 pages · Processed 2 min ago</p>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- ══ CONTROLS BAR ZONE ══════════════════════════════════════ -->
+  <section class="arc-card mb-4 fade-in-up">
+    <div class="arc-card-body py-2">
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-size:.83rem; color:var(--arc-muted);">View:</span>
+          <div class="btn-group btn-group-sm">
+            <button class="btn arc-btn-primary active" onclick="setView('split', this)">Split</button>
+            <button class="btn arc-btn-outline" onclick="setView('original', this)">Original</button>
+            <button class="btn arc-btn-outline" onclick="setView('simplified', this)">Simplified</button>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-size:.83rem; color:var(--arc-muted);">Reading level:</span>
+          <select class="form-select form-select-sm arc-input" style="width:auto;">
+            <option>🎓 Advanced</option>
+            <option selected>📚 Standard</option>
+            <option>🧒 Simple</option>
+          </select>
+        </div>
+        <div class="ms-auto d-flex gap-2">
+          <button class="btn btn-sm arc-btn-ghost"><i class="bi bi-printer me-1"></i>Print</button>
+          <button class="btn btn-sm arc-btn-ghost"><i class="bi bi-download me-1"></i>Export</button>
+          <button class="btn btn-sm arc-btn-primary" onclick="location.href='{% url 'summarization' %}'">
+            <i class="bi bi-card-text me-1"></i>Generate Summary
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ MAIN PANELS ZONE ═══════════════════════════════════════ -->
+  <div class="row g-4 mb-4">
+
+    <!-- Original Text Panel -->
+    <div class="col-lg-6 fade-in-up delay-1" id="panelOriginal">
+      <div class="arc-card h-100">
+        <div class="arc-card-header">
+          <div>
+            <div class="panel-label">Original Text</div>
+            <h6 style="margin:0;">ML Basics – Introduction</h6>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <div class="complexity-meter">
+              <div class="meter-block filled"></div>
+              <div class="meter-block filled"></div>
+              <div class="meter-block filled"></div>
+              <div class="meter-block filled"></div>
+              <div class="meter-block"></div>
+            </div>
+            <span class="reading-level" style="color:var(--arc-blue);">Advanced</span>
+          </div>
+        </div>
+        <div class="arc-card-body p-0">
+          <div class="text-panel" style="border:none; border-radius:0 0 var(--arc-radius) var(--arc-radius);">
+            <p><mark class="arc-mark-blue keyword-hover" title="Click to learn more" onclick="showExplain(event,'Machine Learning')">Machine learning</mark> is a subfield of <mark class="arc-mark-blue keyword-hover" onclick="showExplain(event,'Artificial Intelligence')">artificial intelligence</mark> that enables systems to <mark class="arc-mark keyword-hover" onclick="showExplain(event,'Learning from Data')">learn from data</mark> and improve their performance without being explicitly programmed.</p>
+
+            <p>The field is broadly categorized into three learning paradigms: <mark class="arc-mark-blue keyword-hover" onclick="showExplain(event,'Supervised Learning')">supervised learning</mark>, where models are trained on labeled datasets; <mark class="arc-mark-blue keyword-hover" onclick="showExplain(event,'Unsupervised Learning')">unsupervised learning</mark>, where patterns are discovered in unlabeled data; and <mark class="arc-mark-blue keyword-hover" onclick="showExplain(event,'Reinforcement Learning')">reinforcement learning</mark>, where an agent learns by interacting with an environment.</p>
+
+            <p>Core algorithms include <mark class="arc-mark keyword-hover" onclick="showExplain(event,'Decision Trees')">decision trees</mark>, <mark class="arc-mark keyword-hover" onclick="showExplain(event,'Neural Networks')">neural networks</mark>, <mark class="arc-mark keyword-hover" onclick="showExplain(event,'Support Vector Machine')">support vector machines</mark>, and <mark class="arc-mark keyword-hover" onclick="showExplain(event,'k-Nearest Neighbours')">k-nearest neighbours</mark>. These algorithms are evaluated using metrics such as accuracy, precision, recall, and the F1 score.</p>
+
+            <p>Applications span across computer vision, natural language processing, recommendation systems, and autonomous vehicles, making ML one of the most transformative technologies of the 21st century.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Simplified Explanation Panel -->
+    <div class="col-lg-6 fade-in-up delay-2" id="panelSimplified">
+      <div class="arc-card h-100">
+        <div class="arc-card-header">
+          <div>
+            <div class="panel-label">AI Simplified Explanation</div>
+            <h6 style="margin:0;">Easy English Version</h6>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <div class="complexity-meter">
+              <div class="meter-block filled"></div>
+              <div class="meter-block filled"></div>
+              <div class="meter-block"></div>
+              <div class="meter-block"></div>
+              <div class="meter-block"></div>
+            </div>
+            <span class="reading-level" style="color:#2e7d32;">Simple</span>
+          </div>
+        </div>
+        <div class="arc-card-body p-0">
+          <div class="text-panel" style="border:none; border-radius:0 0 var(--arc-radius) var(--arc-radius); background:#fafffe;">
+            <div class="alert arc-alert alert-success py-2 px-3 mb-3" style="font-size:.8rem;">
+              <i class="bi bi-magic me-1"></i>AI-simplified for easier understanding
+            </div>
+            <p>🤖 <strong>Machine learning</strong> is like teaching a computer by showing it lots of examples, instead of writing rules for it. After seeing enough examples, it figures out the pattern on its own.</p>
+
+            <p>📦 There are 3 main ways to teach it:
+            <br>• <strong>Supervised</strong> – You give it answered questions to study.
+            <br>• <strong>Unsupervised</strong> – You give it questions with no answers and it groups similar things.
+            <br>• <strong>Reinforcement</strong> – Like training a dog — reward it when it does well!</p>
+
+            <p>🔧 The main tools it uses are called <strong>algorithms</strong> — think of them as different solving strategies. Popular ones include Decision Trees (like a flowchart) and Neural Networks (inspired by human brains).</p>
+
+            <p>🌍 This technology powers things you use every day — Netflix suggestions, Google photos, self-driving cars, and voice assistants like Alexa.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ KEYWORDS ZONE ══════════════════════════════════════════ -->
+  <section class="arc-card mb-4 fade-in-up delay-2">
+    <div class="arc-card-header">
+      <h6>🔑 Highlighted Keywords & Concepts</h6>
+      <div class="d-flex gap-2">
+        <span class="arc-badge arc-badge-blue">8 terms found</span>
+        <button class="btn btn-sm arc-btn-ghost"><i class="bi bi-download me-1"></i>Export</button>
+      </div>
+    </div>
+    <div class="arc-card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <table class="table arc-table mb-0">
+            <thead><tr><th>Keyword</th><th>Category</th><th>Importance</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="keyword-tag">Machine Learning</span></td>
+                <td><span class="arc-badge arc-badge-blue">Core</span></td>
+                <td><div class="arc-progress" style="width:80px;"><div class="arc-progress-bar" style="width:100%"></div></div></td>
+              </tr>
+              <tr>
+                <td><span class="keyword-tag">Neural Networks</span></td>
+                <td><span class="arc-badge arc-badge-purple">Algorithm</span></td>
+                <td><div class="arc-progress" style="width:80px;"><div class="arc-progress-bar" style="width:85%"></div></div></td>
+              </tr>
+              <tr>
+                <td><span class="keyword-tag">Supervised Learning</span></td>
+                <td><span class="arc-badge arc-badge-green">Paradigm</span></td>
+                <td><div class="arc-progress" style="width:80px;"><div class="arc-progress-bar" style="width:75%"></div></div></td>
+              </tr>
+              <tr>
+                <td><span class="keyword-tag">Decision Trees</span></td>
+                <td><span class="arc-badge arc-badge-purple">Algorithm</span></td>
+                <td><div class="arc-progress" style="width:80px;"><div class="arc-progress-bar" style="width:65%"></div></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <table class="table arc-table mb-0">
+            <thead><tr><th>Keyword</th><th>Category</th><th>Importance</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="keyword-tag">Reinforcement Learning</span></td>
+                <td><span class="arc-badge arc-badge-green">Paradigm</span></td>
+                <td><div class="arc-progress" style="width:80px;"><div class="arc-progress-bar" style="width:60%"></div></div></td>
+              </tr>
+              <tr>
+                <td><span class="keyword-tag">SVM</span></td>
+                <td><span class="arc-badge arc-badge-purple">Algorithm</span></td>
+                <td><div class="arc-progress" style="width:80px;"><div class="arc-progress-bar" style="width:55%"></div></div></td>
+              </tr>
+              <tr>
+                <td><span class="keyword-tag">Artificial Intelligence</span></td>
+                <td><span class="arc-badge arc-badge-blue">Core</span></td>
+                <td><div class="arc-progress" style="width:80px;"><div class="arc-progress-bar" style="width:90%"></div></div></td>
+              </tr>
+              <tr>
+                <td><span class="keyword-tag">F1 Score</span></td>
+                <td><span class="arc-badge arc-badge-amber">Metric</span></td>
+                <td><div class="arc-progress" style="width:80px;"><div class="arc-progress-bar" style="width:40%"></div></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="mt-3">
+        <div class="panel-label mb-2">All Keywords</div>
+        <div>
+          <span class="keyword-tag">Machine Learning</span>
+          <span class="keyword-tag">Artificial Intelligence</span>
+          <span class="keyword-tag">Neural Networks</span>
+          <span class="keyword-tag">Supervised Learning</span>
+          <span class="keyword-tag">Unsupervised Learning</span>
+          <span class="keyword-tag">Reinforcement Learning</span>
+          <span class="keyword-tag">Decision Trees</span>
+          <span class="keyword-tag">SVM</span>
+          <span class="keyword-tag">Computer Vision</span>
+          <span class="keyword-tag">NLP</span>
+          <span class="keyword-tag">F1 Score</span>
+          <span class="keyword-tag">Precision</span>
+          <span class="keyword-tag">Recall</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ACTIONS ZONE ═══════════════════════════════════════════ -->
+  <section class="arc-card fade-in-up delay-3">
+    <div class="arc-card-body d-flex gap-2 flex-wrap align-items-center">
+      <span style="font-size:.85rem; color:var(--arc-muted);">Next steps:</span>
+      <a href="{% url 'summarization' %}" class="btn arc-btn-primary btn-sm"><i class="bi bi-card-text me-1"></i>Summarize</a>
+      <a href="{% url 'notes' %}" class="btn arc-btn-outline btn-sm"><i class="bi bi-journal-plus me-1"></i>Add Notes</a>
+      <button class="btn arc-btn-outline btn-sm"><i class="bi bi-share me-1"></i>Share</button>
+      <button class="btn arc-btn-outline btn-sm"><i class="bi bi-printer me-1"></i>Print</button>
+      <button class="btn arc-btn-ghost btn-sm ms-auto" onclick="location.href='{% url 'text_input' %}'">
+        <i class="bi bi-arrow-left me-1"></i>Back to Input
+      </button>
+    </div>
+  </section>
+
+</div>
+
+<!-- Explain Popup -->
+<div class="explain-popup" id="explainPopup">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <strong id="popupTerm" style="font-size:.9rem; color:var(--arc-blue);"></strong>
+    <button class="btn-close btn-close-sm" onclick="hideExplain()"></button>
+  </div>
+  <div id="popupDef" style="line-height:1.6;"></div>
+  <a href="#" class="arc-link mt-2 d-block" style="font-size:.78rem;">Learn more →</a>
+</div>
+
+<script>
+  const defs = {
+    'Machine Learning': 'A branch of AI that gives systems the ability to automatically learn from experience without being explicitly programmed.',
+    'Artificial Intelligence': 'The simulation of human intelligence by computer systems, including learning, reasoning, and self-correction.',
+    'Supervised Learning': 'A type of ML where the model is trained on a labeled dataset — both input and expected output are provided.',
+    'Unsupervised Learning': 'ML where the algorithm finds patterns in data without pre-existing labels or categories.',
+    'Reinforcement Learning': 'A type of ML where an agent learns to behave in an environment by performing actions and seeing results.',
+    'Decision Trees': 'A flowchart-like model that maps features of an input to conclusions about the target value.',
+    'Neural Networks': 'Computing systems inspired by biological neural networks that form the basis of deep learning.',
+    'Support Vector Machine': 'A supervised learning model used for classification and regression analysis.',
+    'k-Nearest Neighbours': 'A simple algorithm that classifies data points based on the class of their nearest neighbors.',
+    'Learning from Data': 'The core idea of ML — extracting patterns and rules from data to make predictions.'
+  };
+
+  function showExplain(e, term) {
+    const p = document.getElementById('explainPopup');
+    document.getElementById('popupTerm').textContent = term;
+    document.getElementById('popupDef').textContent = defs[term] || 'Definition not available.';
+    p.style.display='block';
+    p.style.left = Math.min(e.clientX, window.innerWidth-300)+'px';
+    p.style.top = (e.clientY+12)+'px';
+  }
+  function hideExplain(){ document.getElementById('explainPopup').style.display='none'; }
+  document.addEventListener('click', e => { if(!e.target.closest('.keyword-hover') && !e.target.closest('.explain-popup')) hideExplain(); });
+
+  function setView(mode, el) {
+    document.querySelectorAll('.btn-group .btn').forEach(b=>b.className='btn arc-btn-outline');
+    el.className='btn arc-btn-primary active';
+    const o=document.getElementById('panelOriginal'), s=document.getElementById('panelSimplified');
+    if(mode==='split'){ o.className='col-lg-6 fade-in-up delay-1'; s.className='col-lg-6 fade-in-up delay-2'; }
+    if(mode==='original'){ o.className='col-12 fade-in-up delay-1'; s.style.display='none'; return; }
+    if(mode==='simplified'){ s.className='col-12 fade-in-up delay-2'; o.style.display='none'; return; }
+    o.style.display=''; s.style.display='';
+  }
+</script>
+<script src="{% static 'js/navbar.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

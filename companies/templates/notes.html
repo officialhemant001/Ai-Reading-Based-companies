@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% load static %}
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ARC Reader – Notes & Highlights</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="{% static 'css/shared.css' %}" rel="stylesheet"/>
+  <style>
+    .note-card { background:#fff; border:1.5px solid var(--arc-border); border-radius:12px; padding:1.1rem; transition:all .2s; }
+    .note-card:hover { box-shadow:var(--arc-shadow-hover); transform:translateY(-2px); }
+    .note-card .nc-color { width:4px; border-radius:50px; min-height:60px; margin-right:12px; }
+    .color-swatch { width:22px; height:22px; border-radius:50%; cursor:pointer; border:2.5px solid transparent; transition:all .15s; }
+    .color-swatch:hover, .color-swatch.selected { transform:scale(1.2); border-color:#333; }
+    .highlight-strip { border-left:4px solid; border-radius:0 8px 8px 0; padding:8px 12px; margin-bottom:10px; font-size:.86rem; line-height:1.7; }
+    .hl-yellow  { border-color:#f9a825; background:#fff9c4; color:#4a3000; }
+    .hl-blue    { border-color:var(--arc-accent); background:var(--arc-light); color:var(--arc-dark); }
+    .hl-green   { border-color:#43a047; background:#e8f5e9; color:#1b5e20; }
+    .hl-pink    { border-color:#e91e63; background:#fce4ec; color:#880e4f; }
+    .search-note { border:1.5px solid var(--arc-border); border-radius:50px; padding:8px 16px; font-size:.88rem; width:100%; }
+    .search-note:focus { border-color:var(--arc-accent); outline:none; box-shadow:0 0 0 3px rgba(33,150,243,0.1); }
+    .filter-chip { font-size:.78rem; padding:4px 14px; border-radius:50px; border:1.5px solid var(--arc-border); cursor:pointer; transition:all .2s; }
+    .filter-chip.active, .filter-chip:hover { border-color:var(--arc-accent); background:var(--arc-light); color:var(--arc-blue); }
+    .tab-content-pane { display:none; }
+    .tab-content-pane.show { display:block; }
+    .view-toggle .btn { font-size:.8rem; padding:4px 12px; }
+  </style>
+</head>
+<body style="font-family:'Poppins',sans-serif;">
+
+<div id="arc-navbar"></div>
+
+<div class="arc-page-tabs">
+  <ul class="nav">
+    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}"><i class="bi bi-grid me-1"></i>Dashboard</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'text_input' %}"><i class="bi bi-upload me-1"></i>Text Input</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'image_capture' %}"><i class="bi bi-camera me-1"></i>Image Capture</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'text_processing' %}"><i class="bi bi-cpu me-1"></i>Processing</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'summarization' %}"><i class="bi bi-card-text me-1"></i>Summarize</a></li>
+    <li class="nav-item"><a class="nav-link active" href="{% url 'notes' %}"><i class="bi bi-journal-text me-1"></i>Notes</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'learning' %}"><i class="bi bi-graph-up me-1"></i>Learning</a></li>
+  </ul>
+</div>
+
+<div class="arc-page-header">
+  <h4><i class="bi bi-journal-text me-2 text-primary"></i>Notes & Highlights</h4>
+  <p class="text-muted mb-0" style="font-size:.85rem;">89 notes · 156 highlights · All documents</p>
+</div>
+
+<div class="page-wrapper">
+  <div class="row g-4">
+
+    <!-- LEFT: Create + Filter -->
+    <div class="col-lg-4">
+
+      <!-- ══ CREATE NOTE ZONE ════════════════════════════════════ -->
+      <section class="arc-card mb-4 fade-in-up">
+        <div class="arc-card-header">
+          <h6><i class="bi bi-plus-circle me-2 text-primary"></i>Create Note</h6>
+        </div>
+        <div class="arc-card-body">
+          <div class="mb-3">
+            <label class="arc-label">Note Title</label>
+            <input type="text" class="form-control arc-input" placeholder="e.g. ML Core Concepts" id="noteTitle"/>
+          </div>
+          <div class="mb-3">
+            <label class="arc-label">Note Content</label>
+            <textarea class="form-control arc-textarea arc-input" rows="5" placeholder="Write your note here… you can use Markdown." id="noteContent"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="arc-label">Color Tag</label>
+            <div class="d-flex gap-2 mt-1">
+              <div class="color-swatch selected" style="background:#fff176;" onclick="selectColor(this,'yellow')" title="Yellow"></div>
+              <div class="color-swatch" style="background:#bbdefb;" onclick="selectColor(this,'blue')" title="Blue"></div>
+              <div class="color-swatch" style="background:#c8e6c9;" onclick="selectColor(this,'green')" title="Green"></div>
+              <div class="color-swatch" style="background:#f8bbd0;" onclick="selectColor(this,'pink')" title="Pink"></div>
+              <div class="color-swatch" style="background:#e1bee7;" onclick="selectColor(this,'purple')" title="Purple"></div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="arc-label">Linked Document</label>
+            <select class="form-select arc-input arc-select">
+              <option>— None —</option>
+              <option>ML Basics.pdf</option>
+              <option>Constitution.txt</option>
+              <option>Physics Notes.docx</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="arc-label">Tags</label>
+            <input type="text" class="form-control arc-input" placeholder="ml, algorithms, study" id="noteTags"/>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn arc-btn-outline flex-grow-1">Save Draft</button>
+            <button class="btn arc-btn-primary flex-grow-1" onclick="addNote()">
+              <i class="bi bi-plus me-1"></i>Add Note
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ STATS ZONE ══════════════════════════════════════════ -->
+      <section class="arc-card fade-in-up delay-1">
+        <div class="arc-card-header"><h6>📊 Note Statistics</h6></div>
+        <div class="arc-card-body">
+          <div class="row g-2 text-center mb-3">
+            <div class="col-4">
+              <div style="font-size:1.5rem;font-weight:800;color:var(--arc-blue);">89</div>
+              <div style="font-size:.72rem;color:var(--arc-muted);">Total Notes</div>
+            </div>
+            <div class="col-4">
+              <div style="font-size:1.5rem;font-weight:800;color:#2e7d32;">156</div>
+              <div style="font-size:.72rem;color:var(--arc-muted);">Highlights</div>
+            </div>
+            <div class="col-4">
+              <div style="font-size:1.5rem;font-weight:800;color:#f57f17;">12</div>
+              <div style="font-size:.72rem;color:var(--arc-muted);">This week</div>
+            </div>
+          </div>
+          <div class="text-muted" style="font-size:.8rem;">Most active: <strong class="text-dark">ML Basics.pdf</strong></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT: Notes & Highlights List -->
+    <div class="col-lg-8">
+
+      <!-- ══ SEARCH + FILTER ZONE ═══════════════════════════════ -->
+      <section class="mb-3 fade-in-up delay-1">
+        <div class="d-flex gap-2 align-items-center flex-wrap mb-3">
+          <div class="flex-grow-1">
+            <input type="text" class="search-note" placeholder="🔍  Search notes and highlights…" oninput="filterNotes(this.value)"/>
+          </div>
+          <div class="btn-group view-toggle">
+            <button class="btn arc-btn-outline active" onclick="setView('card',this)"><i class="bi bi-grid-3x2-gap"></i></button>
+            <button class="btn arc-btn-outline" onclick="setView('list',this)"><i class="bi bi-list-ul"></i></button>
+          </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <span class="filter-chip active" onclick="filterChip(this,'all')">All (89)</span>
+          <span class="filter-chip" onclick="filterChip(this,'study')">📘 Study (34)</span>
+          <span class="filter-chip" onclick="filterChip(this,'important')">⭐ Important (18)</span>
+          <span class="filter-chip" onclick="filterChip(this,'review')">🔄 Review (22)</span>
+          <span class="filter-chip" onclick="filterChip(this,'question')">❓ Questions (15)</span>
+        </div>
+      </section>
+
+      <!-- ══ TABS: Notes / Highlights ════════════════════════════ -->
+      <ul class="nav nav-tabs border-0 mb-3 fade-in-up delay-1" id="notesTabs">
+        <li class="nav-item">
+          <a class="nav-link active" href="#" onclick="switchTab('notes',this)">📝 Notes <span class="arc-badge arc-badge-blue ms-1">89</span></a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" onclick="switchTab('highlights',this)">✨ Highlights <span class="arc-badge arc-badge-amber ms-1">156</span></a>
+        </li>
+      </ul>
+
+      <!-- NOTES TAB -->
+      <div id="tabNotes" class="tab-content-pane show">
+        <div class="row g-3" id="notesGrid">
+          <!-- Note 1 -->
+          <div class="col-md-6 note-item fade-in-up delay-1">
+            <div class="note-card">
+              <div class="d-flex">
+                <div class="nc-color" style="background:#f9a825;"></div>
+                <div class="flex-grow-1">
+                  <div class="d-flex justify-content-between align-items-start mb-1">
+                    <h6 class="fw-600 mb-0" style="font-size:.9rem;">Supervised Learning</h6>
+                    <div class="dropdown">
+                      <button class="btn btn-sm arc-btn-ghost p-1" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
+                      <ul class="dropdown-menu border-0 shadow" style="border-radius:12px;min-width:140px;">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-share me-2"></i>Share</a></li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                  <p class="text-muted mb-2" style="font-size:.82rem;">Trains on labeled data. Example: Email spam classifier — input=email, label=spam/not spam.</p>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div><span class="arc-badge arc-badge-blue">ml</span> <span class="arc-badge arc-badge-blue">algorithms</span></div>
+                    <span class="text-muted" style="font-size:.72rem;">Today 2:30 PM</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Note 2 -->
+          <div class="col-md-6 note-item fade-in-up delay-2">
+            <div class="note-card">
+              <div class="d-flex">
+                <div class="nc-color" style="background:var(--arc-accent);"></div>
+                <div class="flex-grow-1">
+                  <div class="d-flex justify-content-between align-items-start mb-1">
+                    <h6 class="fw-600 mb-0" style="font-size:.9rem;">Neural Network Layers</h6>
+                    <div class="dropdown">
+                      <button class="btn btn-sm arc-btn-ghost p-1" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
+                      <ul class="dropdown-menu border-0 shadow" style="border-radius:12px;min-width:140px;">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                  <p class="text-muted mb-2" style="font-size:.82rem;">Input → Hidden (activation) → Output. ReLU is the most common activation function. Backpropagation updates weights.</p>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div><span class="arc-badge arc-badge-purple">deep-learning</span></div>
+                    <span class="text-muted" style="font-size:.72rem;">Yesterday</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Note 3 -->
+          <div class="col-md-6 note-item fade-in-up delay-3">
+            <div class="note-card">
+              <div class="d-flex">
+                <div class="nc-color" style="background:#43a047;"></div>
+                <div class="flex-grow-1">
+                  <div class="d-flex justify-content-between align-items-start mb-1">
+                    <h6 class="fw-600 mb-0" style="font-size:.9rem;">F1 Score Formula</h6>
+                    <div class="dropdown">
+                      <button class="btn btn-sm arc-btn-ghost p-1" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
+                      <ul class="dropdown-menu border-0 shadow" style="border-radius:12px;min-width:140px;">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                  <p class="text-muted mb-2" style="font-size:.82rem;">F1 = 2 × (Precision × Recall) / (Precision + Recall). Harmonic mean balances both metrics. Best=1, Worst=0.</p>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div><span class="arc-badge arc-badge-green">metrics</span> <span class="arc-badge arc-badge-green">exam</span></div>
+                    <span class="text-muted" style="font-size:.72rem;">Mon, Mar 29</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Note 4 -->
+          <div class="col-md-6 note-item fade-in-up delay-4">
+            <div class="note-card">
+              <div class="d-flex">
+                <div class="nc-color" style="background:#e91e63;"></div>
+                <div class="flex-grow-1">
+                  <div class="d-flex justify-content-between align-items-start mb-1">
+                    <h6 class="fw-600 mb-0" style="font-size:.9rem;">❓ Question to Review</h6>
+                    <div class="dropdown">
+                      <button class="btn btn-sm arc-btn-ghost p-1" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
+                      <ul class="dropdown-menu border-0 shadow" style="border-radius:12px;min-width:140px;">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                  <p class="text-muted mb-2" style="font-size:.82rem;">What is the difference between bagging and boosting in ensemble learning? Ask professor next class.</p>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div><span class="arc-badge arc-badge-red">question</span></div>
+                    <span class="text-muted" style="font-size:.72rem;">Sun, Mar 28</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- New note (added via JS) -->
+          <div id="newNoteHolder"></div>
+        </div>
+      </div>
+
+      <!-- HIGHLIGHTS TAB -->
+      <div id="tabHighlights" class="tab-content-pane">
+        <div class="arc-card fade-in-up">
+          <div class="arc-card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="section-sub">Showing 156 highlights · sorted by time</span>
+              <select class="form-select form-select-sm arc-input" style="width:auto;">
+                <option>All Documents</option>
+                <option>ML Basics.pdf</option>
+                <option>Constitution.txt</option>
+              </select>
+            </div>
+            <div class="highlight-strip hl-yellow">
+              "Machine learning enables systems to <strong>learn from data and improve their performance</strong> without being explicitly programmed."
+              <div class="text-muted mt-1" style="font-size:.72rem;">ML Basics.pdf · Page 4 · Today 2:30 PM</div>
+            </div>
+            <div class="highlight-strip hl-blue">
+              "The three main paradigms are <strong>supervised learning, unsupervised learning, and reinforcement learning</strong>."
+              <div class="text-muted mt-1" style="font-size:.72rem;">ML Basics.pdf · Page 7 · Today 1:45 PM</div>
+            </div>
+            <div class="highlight-strip hl-green">
+              "Photosynthesis converts sunlight, CO₂ and H₂O into glucose and oxygen — <strong>6CO₂ + 6H₂O + Light → C₆H₁₂O₆ + 6O₂</strong>"
+              <div class="text-muted mt-1" style="font-size:.72rem;">Chemistry Scan · Page 1 · Yesterday</div>
+            </div>
+            <div class="highlight-strip hl-pink">
+              "Article 21 guarantees <strong>Right to Life and Personal Liberty</strong> — no person shall be deprived of his life or personal liberty except according to procedure established by law."
+              <div class="text-muted mt-1" style="font-size:.72rem;">Constitution.txt · Section 4 · Mon, Mar 29</div>
+            </div>
+            <div class="highlight-strip hl-yellow">
+              "Backpropagation is the algorithm used to <strong>compute gradients</strong> and update weights in neural networks during training."
+              <div class="text-muted mt-1" style="font-size:.72rem;">ML Basics.pdf · Page 22 · Mon, Mar 29</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Add Note Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content text-center p-4">
+      <div style="font-size:2.5rem;">✅</div>
+      <h6 class="fw-700 mt-2">Note Added!</h6>
+      <p class="text-muted" style="font-size:.85rem;">Your note has been saved successfully.</p>
+    </div>
+  </div>
+</div>
+<script>
+ let selectedColor = '#f9a825';
+ function selectColor(el, name) {
+  document.querySelectorAll('.color-swatch')
+    .forEach(s => s.classList.remove('selected'));
+
+  el.classList.add('selected');
+
+  // safe color pick
+  selectedColor = getComputedStyle(el).backgroundColor;
+ }
+
+ /* ================= ADD NOTE ================= */
+ function addNote() {
+  const title = document.getElementById('noteTitle').value.trim() || 'New Note';
+  const content = document.getElementById('noteContent').value.trim() || 'No content';
+  const tags = document.getElementById('noteTags').value.trim();
+
+  const div = document.createElement('div');
+  div.className = "col-md-6 note-item fade-in-up";
+
+  div.innerHTML = `
+    <div class="note-card">
+      <div class="d-flex">
+        <div class="nc-color" style="background:${selectedColor};"></div>
+
+        <div class="flex-grow-1">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <h6 class="fw-600 mb-0" style="font-size:.9rem;">${title}</h6>
+          </div>
+
+          <p class="text-muted mb-2" style="font-size:.82rem;">
+            ${content.substring(0,100)}${content.length > 100 ? '…' : ''}
+          </p>
+
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              ${tags
+                ? tags.split(',')
+                    .map(t => t.trim())
+                    .filter(t => t)
+                    .map(t => `<span class="arc-badge arc-badge-blue">${t}</span>`)
+                    .join(' ')
+                : ''}
+            </div>
+
+            <span class="text-muted" style="font-size:.72rem;">Just now</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('notesGrid').appendChild(div);
+
+  // clear inputs
+  document.getElementById('noteTitle').value = '';
+  document.getElementById('noteContent').value = '';
+  document.getElementById('noteTags').value = '';
+
+  // success modal
+  const modalEl = document.getElementById('successModal');
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  modal.show();
+  setTimeout(() => modal.hide(), 1500);
+ }
+
+ /* ================= SWITCH TAB ================= */
+ function switchTab(tab, el) {
+  document.querySelectorAll('#notesTabs .nav-link')
+    .forEach(l => l.classList.remove('active'));
+
+  el.classList.add('active');
+
+  document.querySelectorAll('.tab-content-pane')
+    .forEach(p => p.classList.remove('show'));
+
+  const target = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+  if (target) target.classList.add('show');
+
+  return false;
+ }
+
+ /* ================= FILTER CHIP ================= */
+ function filterChip(el, filter) {
+  document.querySelectorAll('.filter-chip')
+    .forEach(c => c.classList.remove('active'));
+
+  el.classList.add('active');
+ }
+
+ /* ================= SEARCH NOTES ================= */
+ function filterNotes(q) {
+  document.querySelectorAll('.note-item').forEach(ni => {
+    ni.style.display =
+      ni.textContent.toLowerCase().includes(q.toLowerCase())
+        ? ''
+        : 'none';
+  });
+ }
+ function setView(mode, el) {
+  document.querySelectorAll('.view-toggle .btn')
+    .forEach(b => b.classList.remove('active'));
+
+  el.classList.add('active');
+
+  const grid = document.getElementById('notesGrid');
+  grid.className = mode === 'list' ? 'row g-2' : 'row g-3';
+ }
+</script>
+<script src="{% static 'js/navbar.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

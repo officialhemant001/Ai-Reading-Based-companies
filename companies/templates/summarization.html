@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% load static %}
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ARC Reader – Summarization</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="{% static 'css/shared.css' %}" rel="stylesheet"/>
+  <style>
+    .text-panel { font-size:.9rem; line-height:2; color:var(--arc-text); }
+    .summary-length-btn { font-size:.8rem; padding:4px 14px; border-radius:50px; border:1.5px solid var(--arc-border); cursor:pointer; transition:all .2s; }
+    .summary-length-btn.active, .summary-length-btn:hover { border-color:var(--arc-accent); background:var(--arc-light); color:var(--arc-blue); font-weight:600; }
+    .summary-type-card { border:2px solid var(--arc-border); border-radius:12px; padding:1rem; cursor:pointer; transition:all .2s; text-align:center; }
+    .summary-type-card:hover, .summary-type-card.active { border-color:var(--arc-accent); background:var(--arc-light); }
+    .copy-toast { position:fixed; bottom:24px; right:24px; z-index:9999; border-radius:12px; font-size:.88rem; min-width:200px; display:none; }
+    .reduction-badge { font-size:.7rem; background:#e8f5e9; color:#2e7d32; border-radius:50px; padding:3px 10px; font-weight:600; }
+  </style>
+</head>
+<body style="font-family:'Poppins',sans-serif;">
+
+<div id="arc-navbar"></div>
+
+<div class="arc-page-tabs">
+  <ul class="nav">
+    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}"><i class="bi bi-grid me-1"></i>Dashboard</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'text_input' %}"><i class="bi bi-upload me-1"></i>Text Input</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'image_capture' %}"><i class="bi bi-camera me-1"></i>Image Capture</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'text_processing' %}"><i class="bi bi-cpu me-1"></i>Processing</a></li>
+    <li class="nav-item"><a class="nav-link active" href="{% url 'summarization' %}"><i class="bi bi-card-text me-1"></i>Summarize</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'notes' %}"><i class="bi bi-journal-text me-1"></i>Notes</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'learning' %}"><i class="bi bi-graph-up me-1"></i>Learning</a></li>
+  </ul>
+</div>
+
+<div class="arc-page-header">
+  <h4><i class="bi bi-card-text me-2 text-primary"></i>Summarization</h4>
+  <p class="text-muted mb-0" style="font-size:.85rem;">ML Basics – Chapter 1 · 2,400 words original · AI summary ready</p>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- ══ SUMMARY CONTROLS ZONE ══════════════════════════════════ -->
+  <section class="arc-card mb-4 fade-in-up">
+    <div class="arc-card-body">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-4">
+          <div style="font-size:.82rem; font-weight:600; color:var(--arc-muted); margin-bottom:8px;">SUMMARY LENGTH</div>
+          <div class="d-flex gap-2">
+            <span class="summary-length-btn" onclick="setLen('brief',this)">Brief</span>
+            <span class="summary-length-btn active" onclick="setLen('standard',this)">Standard</span>
+            <span class="summary-length-btn" onclick="setLen('detailed',this)">Detailed</span>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div style="font-size:.82rem; font-weight:600; color:var(--arc-muted); margin-bottom:8px;">FORMAT</div>
+          <select class="form-select arc-input arc-select form-select-sm" id="fmtSelect" onchange="changeFmt()">
+            <option value="paragraph">📝 Paragraph</option>
+            <option value="bullets">• Bullet Points</option>
+            <option value="tldr">⚡ TL;DR (1 line)</option>
+            <option value="qna">❓ Q&A Format</option>
+          </select>
+        </div>
+        <div class="col-md-4 text-end">
+          <button class="btn arc-btn-primary" onclick="regenerate()">
+            <i class="bi bi-arrow-clockwise me-2"></i>Regenerate Summary
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SUMMARY TYPE SELECTOR ══════════════════════════════════ -->
+  <section class="arc-card mb-4 fade-in-up delay-1">
+    <div class="arc-card-header"><h6>🎯 Summary Style</h6></div>
+    <div class="arc-card-body">
+      <div class="row g-2">
+        <div class="col-6 col-md-3">
+          <div class="summary-type-card active" onclick="pickType(this)">
+            <div style="font-size:1.6rem;">📝</div>
+            <div class="fw-600 mt-1" style="font-size:.82rem;">General</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="summary-type-card" onclick="pickType(this)">
+            <div style="font-size:1.6rem;">🎓</div>
+            <div class="fw-600 mt-1" style="font-size:.82rem;">Academic</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="summary-type-card" onclick="pickType(this)">
+            <div style="font-size:1.6rem;">🧒</div>
+            <div class="fw-600 mt-1" style="font-size:.82rem;">Child-Friendly</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="summary-type-card" onclick="pickType(this)">
+            <div style="font-size:1.6rem;">💼</div>
+            <div class="fw-600 mt-1" style="font-size:.82rem;">Executive</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SPLIT VIEW ZONE ════════════════════════════════════════ -->
+  <div class="row g-4 mb-4">
+
+    <!-- Original Text -->
+    <div class="col-lg-6 fade-in-up delay-1">
+      <div class="arc-card h-100">
+        <div class="arc-card-header">
+          <div>
+            <div style="font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--arc-muted);">Original Text</div>
+            <h6 style="margin:0;">Full Chapter Content</h6>
+          </div>
+          <span class="arc-badge arc-badge-blue">2,400 words</span>
+        </div>
+        <div class="arc-card-body" style="max-height:420px; overflow-y:auto;">
+          <div class="text-panel">
+            <p><strong>1. Introduction to Machine Learning</strong></p>
+            <p>Machine learning is a subfield of artificial intelligence that enables systems to learn from data and improve their performance without being explicitly programmed. The term was coined by Arthur Samuel in 1959 and has since evolved into one of the most impactful fields in computer science.</p>
+            <p>The fundamental premise of machine learning is that rather than manually encoding rules and decision logic into software, we provide systems with large amounts of data and allow them to discover the underlying patterns and relationships automatically.</p>
+            <p><strong>1.1 Types of Machine Learning</strong></p>
+            <p>The field is broadly categorized into three learning paradigms: supervised learning, where models are trained on labeled datasets; unsupervised learning, where patterns are discovered in unlabeled data; and reinforcement learning, where an agent learns by interacting with an environment and receiving rewards or penalties.</p>
+            <p><strong>1.2 Core Algorithms</strong></p>
+            <p>Core algorithms include decision trees, neural networks, support vector machines, and k-nearest neighbours. These algorithms are evaluated using metrics such as accuracy, precision, recall, and the F1 score to determine their effectiveness on a given task...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Panel -->
+    <div class="col-lg-6 fade-in-up delay-2">
+      <div class="arc-card h-100">
+        <div class="arc-card-header">
+          <div>
+            <div style="font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--arc-muted);">AI Generated Summary</div>
+            <h6 style="margin:0;">Standard Paragraph</h6>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="reduction-badge">↓ 82% shorter</span>
+            <span class="arc-badge arc-badge-green">432 words</span>
+          </div>
+        </div>
+        <div class="arc-card-body" style="max-height:420px; overflow-y:auto;">
+          <div class="alert arc-alert alert-info py-2 px-3 mb-3" style="font-size:.78rem;">
+            <i class="bi bi-magic me-1"></i>AI-generated · <span id="genTime">Generated 2 min ago</span>
+          </div>
+          <div class="text-panel" id="summaryContent">
+            <p>Machine learning (ML) is an AI subfield where systems improve performance through data rather than explicit programming, a concept pioneered by Arthur Samuel in 1959.</p>
+
+            <p><strong>Three Core Paradigms:</strong><br>
+            <mark class="arc-mark-blue">Supervised learning</mark> trains on labeled data; <mark class="arc-mark-blue">unsupervised learning</mark> finds patterns in unlabeled data; <mark class="arc-mark-blue">reinforcement learning</mark> uses rewards and environment interaction to guide an agent.</p>
+
+            <p><strong>Key Algorithms:</strong> Decision trees, neural networks, SVMs, and k-NN are the foundational tools, measured with accuracy, precision, recall, and F1 metrics.</p>
+
+            <p><strong>Real-World Impact:</strong> ML powers computer vision, NLP, recommendation engines, and autonomous vehicles — positioning it as a defining technology of the century.</p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="p-3 border-top" style="border-color:var(--arc-border)!important;">
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-sm arc-btn-primary" onclick="copySum()">
+              <i class="bi bi-clipboard me-1"></i>Copy Summary
+            </button>
+            <button class="btn btn-sm arc-btn-outline" onclick="downloadSum()">
+              <i class="bi bi-download me-1"></i>Download
+            </button>
+            <button class="btn btn-sm arc-btn-outline" onclick="location.href='{% url 'notes' %}'">
+              <i class="bi bi-journal-plus me-1"></i>Save to Notes
+            </button>
+            <button class="btn btn-sm arc-btn-ghost" onclick="shareSum()">
+              <i class="bi bi-share me-1"></i>Share
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ KEY TAKEAWAYS ZONE ══════════════════════════════════════ -->
+  <section class="arc-card mb-4 fade-in-up delay-3">
+    <div class="arc-card-header">
+      <h6>⚡ Key Takeaways (Auto-generated)</h6>
+      <span class="arc-badge arc-badge-amber">5 points</span>
+    </div>
+    <div class="arc-card-body">
+      <div class="row g-2">
+        <div class="col-md-6">
+          <div class="d-flex gap-2 align-items-start mb-3">
+            <span style="background:var(--arc-light); color:var(--arc-blue); width:26px; height:26px; min-width:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700;">1</span>
+            <p class="mb-0" style="font-size:.87rem;">ML enables computers to learn from data without being manually programmed.</p>
+          </div>
+          <div class="d-flex gap-2 align-items-start mb-3">
+            <span style="background:var(--arc-light); color:var(--arc-blue); width:26px; height:26px; min-width:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700;">2</span>
+            <p class="mb-0" style="font-size:.87rem;">Three paradigms: Supervised, Unsupervised, and Reinforcement Learning.</p>
+          </div>
+          <div class="d-flex gap-2 align-items-start">
+            <span style="background:var(--arc-light); color:var(--arc-blue); width:26px; height:26px; min-width:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700;">3</span>
+            <p class="mb-0" style="font-size:.87rem;">Core algorithms: Decision Trees, Neural Networks, SVM, k-NN.</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="d-flex gap-2 align-items-start mb-3">
+            <span style="background:#e8f5e9; color:#2e7d32; width:26px; height:26px; min-width:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700;">4</span>
+            <p class="mb-0" style="font-size:.87rem;">Performance is measured via accuracy, precision, recall, and F1 score.</p>
+          </div>
+          <div class="d-flex gap-2 align-items-start">
+            <span style="background:#e8f5e9; color:#2e7d32; width:26px; height:26px; min-width:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700;">5</span>
+            <p class="mb-0" style="font-size:.87rem;">Applications include computer vision, NLP, recommendations, and self-driving vehicles.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ HISTORY ZONE ═══════════════════════════════════════════ -->
+  <section class="arc-card fade-in-up delay-4">
+    <div class="arc-card-header"><h6>🕐 Summary History</h6></div>
+    <div class="arc-card-body p-0">
+      <table class="table arc-table mb-0">
+        <thead><tr><th>Version</th><th>Format</th><th>Length</th><th>Generated</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="fw-600" style="font-size:.85rem;">v3 (Current)</td>
+            <td><span class="arc-badge arc-badge-blue">Paragraph</span></td>
+            <td class="text-muted" style="font-size:.83rem;">432 words</td>
+            <td class="text-muted" style="font-size:.83rem;">Today, 2:30 PM</td>
+            <td><button class="btn btn-sm arc-btn-ghost">Restore</button></td>
+          </tr>
+          <tr>
+            <td class="fw-600" style="font-size:.85rem;">v2</td>
+            <td><span class="arc-badge arc-badge-amber">Bullets</span></td>
+            <td class="text-muted" style="font-size:.83rem;">210 words</td>
+            <td class="text-muted" style="font-size:.83rem;">Today, 1:12 PM</td>
+            <td><button class="btn btn-sm arc-btn-ghost">Restore</button></td>
+          </tr>
+          <tr>
+            <td class="fw-600" style="font-size:.85rem;">v1</td>
+            <td><span class="arc-badge arc-badge-purple">TL;DR</span></td>
+            <td class="text-muted" style="font-size:.83rem;">48 words</td>
+            <td class="text-muted" style="font-size:.83rem;">Yesterday</td>
+            <td><button class="btn btn-sm arc-btn-ghost">Restore</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- Copy Toast -->
+<div class="alert alert-success copy-toast shadow" id="copyToast">
+  <i class="bi bi-check-circle-fill me-2"></i>Summary copied to clipboard!
+</div>
+
+<script>
+  function setLen(len, el) {
+    document.querySelectorAll('.summary-length-btn').forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+  }
+  function pickType(el) {
+    document.querySelectorAll('.summary-type-card').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+  }
+  function changeFmt() {
+    const fmt = document.getElementById('fmtSelect').value;
+    const box = document.getElementById('summaryContent');
+    const bullets = `<ul style="font-size:.9rem;line-height:2;">
+      <li>ML is an AI subfield where systems learn from data.</li>
+      <li><strong>Supervised</strong> — trains on labeled data.</li>
+      <li><strong>Unsupervised</strong> — finds patterns without labels.</li>
+      <li><strong>Reinforcement</strong> — learns from reward/penalty.</li>
+      <li>Key algorithms: Decision Trees, Neural Networks, SVM, k-NN.</li>
+      <li>Applications: CV, NLP, recommendations, autonomous vehicles.</li>
+    </ul>`;
+    const tldr = `<div style="font-size:1.1rem;font-weight:600;color:var(--arc-blue);padding:1rem;background:var(--arc-light);border-radius:10px;">⚡ ML teaches computers to learn from data automatically, using supervised, unsupervised, or reinforcement approaches, powering AI applications worldwide.</div>`;
+    const qna = `<div style="font-size:.88rem;line-height:1.9;">
+      <strong>Q: What is machine learning?</strong><br>A: A field of AI where systems learn from data without explicit programming.<br><br>
+      <strong>Q: What are the types?</strong><br>A: Supervised, Unsupervised, and Reinforcement Learning.<br><br>
+      <strong>Q: What are popular algorithms?</strong><br>A: Decision Trees, Neural Networks, SVM, k-NN.<br><br>
+      <strong>Q: Where is it used?</strong><br>A: Vision, language processing, self-driving cars, recommendations.
+    </div>`;
+    const para = `<p>Machine learning (ML) is an AI subfield where systems improve performance through data rather than explicit programming.</p><p><strong>Three Core Paradigms:</strong><br>Supervised, Unsupervised, and Reinforcement Learning.</p><p><strong>Key Algorithms:</strong> Decision trees, neural networks, SVMs, and k-NN.</p><p><strong>Real-World Impact:</strong> ML powers computer vision, NLP, and autonomous vehicles.</p>`;
+    box.innerHTML = {paragraph:para,bullets,tldr,qna}[fmt] || para;
+  }
+  function regenerate() {
+    const box = document.getElementById('summaryContent');
+    box.style.opacity='.4';
+    setTimeout(()=>{ box.style.opacity='1'; document.getElementById('genTime').textContent='Just now'; }, 1200);
+  }
+  function copySum() { showToast(); }
+  function downloadSum() { alert('Downloading summary as PDF…'); }
+  function shareSum() { alert('Share link copied!'); }
+  function showToast() {
+    const t=document.getElementById('copyToast');
+    t.style.display='block';
+    setTimeout(()=>t.style.display='none', 2200);
+  }
+</script>
+<script src="{% static 'js/navbar.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

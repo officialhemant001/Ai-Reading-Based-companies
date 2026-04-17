@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% load static %}
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ARC Reader – Text Input</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="{% static 'css/shared.css' %}" rel="stylesheet"/>
+  <style>
+    .input-mode-tab { cursor:pointer; border:2px solid var(--arc-border); border-radius:12px; padding:1rem; text-align:center; transition:all 0.2s; }
+    .input-mode-tab:hover { border-color:var(--arc-accent); background:var(--arc-light); }
+    .input-mode-tab.active { border-color:var(--arc-accent); background:var(--arc-light); }
+    .input-mode-tab .mode-icon { font-size:1.8rem; }
+    .char-count { font-size:.78rem; color:var(--arc-muted); }
+    #pdfPreview { display:none; }
+    .file-list-item { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--arc-light); border-radius:10px; margin-bottom:8px; }
+    .file-list-item .fi-icon { width:36px;height:36px;border-radius:8px;background:var(--arc-blue);color:#fff;display:flex;align-items:center;justify-content:center; }
+    .progress-upload { height:5px; border-radius:50px; background:var(--arc-border); overflow:hidden; }
+    .progress-upload-bar { height:100%; background:linear-gradient(90deg,var(--arc-dark),var(--arc-accent)); transition:width 1.5s ease; border-radius:50px; }
+  </style>
+</head>
+<body style="font-family:'Poppins',sans-serif;">
+
+<div id="arc-navbar"></div>
+
+<div class="arc-page-tabs">
+  <ul class="nav">
+    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}"><i class="bi bi-grid me-1"></i>Dashboard</a></li>
+    <li class="nav-item"><a class="nav-link active" href="{% url 'text_input' %}"><i class="bi bi-upload me-1"></i>Text Input</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'image_capture' %}"><i class="bi bi-camera me-1"></i>Image Capture</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'text_processing' %}"><i class="bi bi-cpu me-1"></i>Processing</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'summarization' %}"><i class="bi bi-card-text me-1"></i>Summarize</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'notes' %}"><i class="bi bi-journal-text me-1"></i>Notes</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'learning' %}"><i class="bi bi-graph-up me-1"></i>Learning</a></li>
+  </ul>
+</div>
+
+<div class="arc-page-header">
+  <h4><i class="bi bi-cloud-upload me-2 text-primary"></i>Text Input</h4>
+  <p class="text-muted mb-0" style="font-size:.85rem;">Upload a PDF or paste your text to begin AI analysis</p>
+</div>
+
+<div class="page-wrapper">
+  <div class="row g-4">
+    <!-- LEFT: Input Panel -->
+    <div class="col-lg-8">
+
+      <!-- ══ INPUT MODE SELECTOR ZONE ═══════════════════════════ -->
+      <section class="arc-card mb-4 fade-in-up">
+        <div class="arc-card-header"><h6>📥 Choose Input Method</h6></div>
+        <div class="arc-card-body">
+          <div class="row g-3">
+            <div class="col-4">
+              <div class="input-mode-tab active" onclick="switchMode('pdf', this)">
+                <div class="mode-icon">📄</div>
+                <div class="fw-600 mt-2" style="font-size:.88rem;">Upload PDF</div>
+                <div class="text-muted" style="font-size:.75rem;">Max 50MB</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="input-mode-tab" onclick="switchMode('text', this)">
+                <div class="mode-icon">✍️</div>
+                <div class="fw-600 mt-2" style="font-size:.88rem;">Paste Text</div>
+                <div class="text-muted" style="font-size:.75rem;">Up to 50,000 chars</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="input-mode-tab" onclick="switchMode('url', this)">
+                <div class="mode-icon">🔗</div>
+                <div class="fw-600 mt-2" style="font-size:.88rem;">From URL</div>
+                <div class="text-muted" style="font-size:.75rem;">Web article</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ PDF UPLOAD ZONE ══════════════════════════════════════ -->
+      <section id="modePdf" class="arc-card mb-4 fade-in-up delay-1">
+        <div class="arc-card-header"><h6>📤 PDF Upload</h6></div>
+        <div class="arc-card-body">
+          <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()" ondragover="handleDrag(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+            <div class="upload-icon mb-3">📄</div>
+            <h6 class="fw-600 mb-1">Drop your PDF here</h6>
+            <p>or <strong style="color:var(--arc-blue);">browse files</strong> to upload</p>
+            <p class="mt-1" style="font-size:.78rem;">Supports: PDF, DOCX, TXT · Max 50MB</p>
+            <input type="file" id="fileInput" accept=".pdf,.docx,.txt" style="display:none" onchange="handleFile(this)"/>
+          </div>
+
+          <!-- File List (appears after upload) -->
+          <div id="fileList" style="display:none;" class="mt-3">
+            <div class="file-list-item">
+              <div class="fi-icon"><i class="bi bi-file-earmark-pdf"></i></div>
+              <div class="flex-grow-1">
+                <div class="fw-600" style="font-size:.87rem;" id="fileName">document.pdf</div>
+                <div class="progress-upload mt-1">
+                  <div class="progress-upload-bar" id="uploadBar" style="width:0%"></div>
+                </div>
+                <div class="d-flex justify-content-between mt-1">
+                  <span class="text-muted" style="font-size:.75rem;" id="fileSize">2.4 MB</span>
+                  <span style="font-size:.75rem; color:var(--arc-blue);" id="uploadStatus">Uploading…</span>
+                </div>
+              </div>
+              <button class="btn btn-sm text-danger" onclick="clearFile()"><i class="bi bi-x-lg"></i></button>
+            </div>
+          </div>
+
+          <!-- Options -->
+          <div class="row g-2 mt-3">
+            <div class="col-md-6">
+              <label class="arc-label">Language</label>
+              <select class="form-select arc-input arc-select">
+                <option>🇮🇳 English</option>
+                <option>🇮🇳 Hindi</option>
+                <option>🇮🇳 Bengali</option>
+                <option>🇮🇳 Tamil</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="arc-label">Processing Mode</label>
+              <select class="form-select arc-input arc-select">
+                <option>🧠 Full AI Analysis</option>
+                <option>📑 Summary Only</option>
+                <option>🔑 Keywords Only</option>
+                <option>📝 Notes Extraction</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ TEXT INPUT ZONE ══════════════════════════════════════ -->
+      <section id="modeText" class="arc-card mb-4 fade-in-up delay-1" style="display:none;">
+        <div class="arc-card-header">
+          <h6>✍️ Paste / Type Text</h6>
+          <span class="char-count" id="charCount">0 / 50,000</span>
+        </div>
+        <div class="arc-card-body">
+          <div class="mb-3">
+            <input type="text" class="form-control arc-input mb-2" placeholder="Document title (optional)"/>
+            <textarea class="form-control arc-textarea" rows="12" placeholder="Paste your text here… Article, book chapter, research paper, notes, anything." oninput="updateCount(this)" id="textArea"></textarea>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn arc-btn-ghost btn-sm"><i class="bi bi-scissors me-1"></i>Trim</button>
+            <button class="btn arc-btn-ghost btn-sm"><i class="bi bi-clipboard me-1"></i>Paste from clipboard</button>
+            <button class="btn arc-btn-ghost btn-sm"><i class="bi bi-trash me-1"></i>Clear</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ URL INPUT ZONE ═══════════════════════════════════════ -->
+      <section id="modeUrl" class="arc-card mb-4 fade-in-up delay-1" style="display:none;">
+        <div class="arc-card-header"><h6>🔗 Fetch from URL</h6></div>
+        <div class="arc-card-body">
+          <label class="arc-label">Web Article / Document URL</label>
+          <div class="input-group arc-input-group mb-3">
+            <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+            <input type="url" class="form-control arc-input" placeholder="https://example.com/article"/>
+            <button class="btn arc-btn-primary" style="border-radius:0 10px 10px 0;">Fetch</button>
+          </div>
+          <div class="alert arc-alert alert-info d-flex gap-2 align-items-start">
+            <i class="bi bi-info-circle mt-1"></i>
+            <span style="font-size:.85rem;">ARC will extract the main content from the URL automatically, removing ads and navigation.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ SUBMIT ZONE ══════════════════════════════════════════ -->
+      <section class="arc-card fade-in-up delay-2">
+        <div class="arc-card-body">
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="flex-grow-1">
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="chkSummarize" checked/>
+                <label class="form-check-label text-muted" for="chkSummarize" style="font-size:.85rem;">Summarize</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="chkKeywords" checked/>
+                <label class="form-check-label text-muted" for="chkKeywords" style="font-size:.85rem;">Extract Keywords</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="chkSimplify"/>
+                <label class="form-check-label text-muted" for="chkSimplify" style="font-size:.85rem;">Simplify</label>
+              </div>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn arc-btn-outline">Save Draft</button>
+              <button class="btn arc-btn-primary px-4" onclick="submitDoc()">
+                <i class="bi bi-cpu me-2"></i>Process with AI
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- RIGHT: Sidebar Info -->
+    <div class="col-lg-4">
+      <!-- Tips -->
+      <div class="arc-card mb-3 fade-in-up delay-2">
+        <div class="arc-card-header"><h6>💡 Tips for Best Results</h6></div>
+        <div class="arc-card-body">
+          <ul class="list-unstyled mb-0" style="font-size:.85rem;">
+            <li class="d-flex gap-2 mb-2"><span style="color:var(--arc-blue);">①</span> Use clear, well-formatted text for better AI understanding.</li>
+            <li class="d-flex gap-2 mb-2"><span style="color:var(--arc-blue);">②</span> PDF files should be text-based, not scanned images.</li>
+            <li class="d-flex gap-2 mb-2"><span style="color:var(--arc-blue);">③</span> For scanned docs, use the <a href="{% url 'image_capture' %}" class="arc-link">Image Capture</a> tab.</li>
+            <li class="d-flex gap-2 mb-0"><span style="color:var(--arc-blue);">④</span> Longer texts produce more detailed summaries.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Supported Formats -->
+      <div class="arc-card mb-3 fade-in-up delay-3">
+        <div class="arc-card-header"><h6>📁 Supported Formats</h6></div>
+        <div class="arc-card-body">
+          <div class="d-flex flex-wrap gap-2">
+            <span class="arc-badge arc-badge-blue">PDF</span>
+            <span class="arc-badge arc-badge-blue">DOCX</span>
+            <span class="arc-badge arc-badge-blue">TXT</span>
+            <span class="arc-badge arc-badge-green">HTML</span>
+            <span class="arc-badge arc-badge-green">MD</span>
+            <span class="arc-badge arc-badge-amber">EPUB</span>
+            <span class="arc-badge arc-badge-amber">RTF</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Uploads -->
+      <div class="arc-card fade-in-up delay-4">
+        <div class="arc-card-header"><h6>🕐 Recent Uploads</h6></div>
+        <div class="arc-card-body p-0">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center px-4" style="font-size:.83rem;">
+              <span><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>ML Basics.pdf</span>
+              <span class="arc-badge arc-badge-green">Done</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-4" style="font-size:.83rem;">
+              <span><i class="bi bi-file-earmark-text me-2 text-primary"></i>Constitution.txt</span>
+              <span class="arc-badge arc-badge-amber">Processing</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-4" style="font-size:.83rem;">
+              <span><i class="bi bi-file-earmark-word me-2 text-primary"></i>Physics Notes.docx</span>
+              <span class="arc-badge arc-badge-green">Done</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Processing Modal -->
+<div class="modal fade" id="processingModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center p-4">
+      <div style="font-size:3rem; margin-bottom:1rem;">🤖</div>
+      <h5 class="fw-700">AI is Processing…</h5>
+      <p class="text-muted mb-3" style="font-size:.88rem;">Analyzing your document with advanced NLP</p>
+      <div class="arc-progress mb-2"><div class="arc-progress-bar" id="procBar" style="width:0%; transition:width 3s ease;"></div></div>
+      <small class="text-muted" id="procLabel">Extracting text…</small>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchMode(mode, el) {
+    document.querySelectorAll('.input-mode-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    ['pdf','text','url'].forEach(m => document.getElementById('mode'+m.charAt(0).toUpperCase()+m.slice(1)).style.display = m===mode?'block':'none');
+  }
+  function updateCount(ta) {
+    document.getElementById('charCount').textContent = ta.value.length + ' / 50,000';
+  }
+  function handleDrag(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('dragover'); }
+  function handleDragLeave() { document.getElementById('dropZone').classList.remove('dragover'); }
+  function handleDrop(e) { e.preventDefault(); handleFile({files: e.dataTransfer.files}); }
+  function handleFile(inp) {
+    const f = inp.files[0]; if(!f) return;
+    document.getElementById('fileList').style.display='block';
+    document.getElementById('fileName').textContent = f.name;
+    document.getElementById('fileSize').textContent = (f.size/1024/1024).toFixed(1)+' MB';
+    let p=0; const bar=document.getElementById('uploadBar');
+    const t=setInterval(()=>{ p+=8; bar.style.width=Math.min(p,100)+'%'; if(p>=100){clearInterval(t); document.getElementById('uploadStatus').textContent='✓ Ready'; document.getElementById('uploadStatus').style.color='var(--arc-success)';}},120);
+  }
+  function clearFile() { document.getElementById('fileList').style.display='none'; }
+  function submitDoc() {
+    const modal = new bootstrap.Modal(document.getElementById('processingModal'));
+    modal.show();
+    const steps=['Extracting text…','Analyzing structure…','Generating summary…','Identifying keywords…','Finalizing…'];
+    let i=0;
+    const t=setInterval(()=>{
+      document.getElementById('procBar').style.width=(i+1)*20+'%';
+      document.getElementById('procLabel').textContent=steps[i]||'Done!';
+      i++;
+      if(i>=5){clearInterval(t); setTimeout(()=>{modal.hide(); location.href='{% url 'text_processing' %}';},600);}
+    },700);
+  }
+</script>
+<script src="{% static 'js/navbar.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

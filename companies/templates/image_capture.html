@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% load static %}
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ARC Reader – Image Capture</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="{% static 'css/shared.css' %}" rel="stylesheet"/>
+  <style>
+    .img-preview-box {
+      min-height:260px; border-radius:var(--arc-radius);
+      background:var(--arc-gray); border:1.5px solid var(--arc-border);
+      display:flex; align-items:center; justify-content:center;
+      overflow:hidden; position:relative;
+    }
+    .img-preview-box img { max-width:100%; max-height:300px; object-fit:contain; border-radius:var(--arc-radius); }
+    .ocr-overlay { position:absolute; top:8px; right:8px; }
+    .extracted-text { font-family:'Courier New',monospace; font-size:.86rem; background:#f8f9fa; border:1.5px solid var(--arc-border); border-radius:10px; padding:1.2rem; min-height:180px; white-space:pre-wrap; line-height:1.8; color:var(--arc-text); }
+    .confidence-bar { height:6px; border-radius:50px; background:var(--arc-border); overflow:hidden; }
+    .confidence-fill { height:100%; background:linear-gradient(90deg,#43a047,#66bb6a); border-radius:50px; }
+    .thumb-img { width:70px; height:70px; object-fit:cover; border-radius:10px; border:2px solid var(--arc-border); cursor:pointer; transition:all .2s; }
+    .thumb-img:hover, .thumb-img.selected { border-color:var(--arc-accent); transform:scale(1.05); }
+  </style>
+</head>
+<body style="font-family:'Poppins',sans-serif;">
+
+<div id="arc-navbar"></div>
+
+<div class="arc-page-tabs">
+  <ul class="nav">
+    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}"><i class="bi bi-grid me-1"></i>Dashboard</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'text_input' %}"><i class="bi bi-upload me-1"></i>Text Input</a></li>
+    <li class="nav-item"><a class="nav-link active" href="{% url 'image_capture' %}"><i class="bi bi-camera me-1"></i>Image Capture</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'text_processing' %}"><i class="bi bi-cpu me-1"></i>Processing</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'summarization' %}"><i class="bi bi-card-text me-1"></i>Summarize</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'notes' %}"><i class="bi bi-journal-text me-1"></i>Notes</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'learning' %}"><i class="bi bi-graph-up me-1"></i>Learning</a></li>
+  </ul>
+</div>
+
+<div class="arc-page-header">
+  <h4><i class="bi bi-camera me-2 text-primary"></i>Image Text Capture (OCR)</h4>
+  <p class="text-muted mb-0" style="font-size:.85rem;">Upload a photo of any text — handwritten, printed, or scanned — and extract it instantly.</p>
+</div>
+
+<div class="page-wrapper">
+  <div class="row g-4">
+
+    <!-- LEFT COL -->
+    <div class="col-lg-7">
+
+      <!-- ══ UPLOAD ZONE ═════════════════════════════════════════ -->
+      <section class="arc-card mb-4 fade-in-up">
+        <div class="arc-card-header">
+          <h6>🖼 Upload Image</h6>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm arc-btn-ghost" onclick="document.getElementById('camInput').click()"><i class="bi bi-camera me-1"></i>Camera</button>
+            <button class="btn btn-sm arc-btn-ghost" onclick="document.getElementById('imgInput').click()"><i class="bi bi-folder2-open me-1"></i>Browse</button>
+          </div>
+        </div>
+        <div class="arc-card-body">
+          <div class="upload-zone mb-3" onclick="document.getElementById('imgInput').click()" id="imgDropZone" ondragover="ev(event)" ondrop="dropImg(event)">
+            <div class="upload-icon mb-2">🖼</div>
+            <h6 class="fw-600 mb-1">Drop image here or click to browse</h6>
+            <p>PNG, JPG, JPEG, WEBP, HEIC · Max 20MB</p>
+            <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="loadImg(this)"/>
+            <input type="file" id="camInput" accept="image/*" capture="environment" style="display:none" onchange="loadImg(this)"/>
+          </div>
+
+          <!-- Multi-image thumbnails -->
+          <div class="d-flex gap-2 flex-wrap" id="thumbRow" style="display:none!important;">
+            <div class="text-muted" style="font-size:.82rem; width:100%;">Selected pages:</div>
+            <img src="https://picsum.photos/seed/book1/140/120" class="thumb-img selected"/>
+            <img src="https://picsum.photos/seed/book2/140/120" class="thumb-img"/>
+            <img src="https://picsum.photos/seed/book3/140/120" class="thumb-img"/>
+            <div style="width:70px;height:70px;border-radius:10px;border:2px dashed var(--arc-border); display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--arc-muted);" onclick="document.getElementById('imgInput').click()">
+              <i class="bi bi-plus-lg fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ PREVIEW ZONE ════════════════════════════════════════ -->
+      <section class="arc-card mb-4 fade-in-up delay-1">
+        <div class="arc-card-header">
+          <h6>👁 Image Preview</h6>
+          <div class="d-flex gap-2" id="imgTools" style="display:none!important;">
+            <button class="btn btn-sm arc-btn-ghost"><i class="bi bi-crop"></i></button>
+            <button class="btn btn-sm arc-btn-ghost"><i class="bi bi-brightness-high"></i></button>
+            <button class="btn btn-sm arc-btn-ghost"><i class="bi bi-arrow-counterclockwise"></i></button>
+          </div>
+        </div>
+        <div class="arc-card-body">
+          <div class="img-preview-box" id="previewBox">
+            <div class="text-center text-muted">
+              <div style="font-size:3rem; opacity:.3;">🖼</div>
+              <p style="font-size:.88rem;">No image selected yet</p>
+            </div>
+          </div>
+
+          <!-- OCR Settings -->
+          <div class="row g-2 mt-3">
+            <div class="col-md-4">
+              <label class="arc-label">OCR Language</label>
+              <select class="form-select arc-input arc-select">
+                <option>English</option>
+                <option>Hindi</option>
+                <option>Bengali</option>
+                <option>Handwritten</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="arc-label">Document Type</label>
+              <select class="form-select arc-input arc-select">
+                <option>📖 Book/Article</option>
+                <option>📋 Handwritten</option>
+                <option>🧾 Receipt/Form</option>
+                <option>📐 Diagram</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="arc-label">Enhancement</label>
+              <select class="form-select arc-input arc-select">
+                <option>Auto</option>
+                <option>Sharpen</option>
+                <option>Denoise</option>
+                <option>Binarize</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 mt-3">
+            <button class="btn arc-btn-outline flex-grow-1">
+              <i class="bi bi-arrow-repeat me-1"></i>Reset
+            </button>
+            <button class="btn arc-btn-primary flex-grow-1" onclick="runOCR()">
+              <i class="bi bi-eye me-2"></i>Extract Text (OCR)
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT COL -->
+    <div class="col-lg-5">
+
+      <!-- ══ EXTRACTED TEXT ZONE ════════════════════════════════ -->
+      <section class="arc-card mb-4 fade-in-up delay-1" id="extractedSection">
+        <div class="arc-card-header">
+          <h6>📋 Extracted Text</h6>
+          <div class="d-flex gap-1"><button class="btn btn-sm arc-btn-ghost" onclick="copyText(event)">
+            <i class="bi bi-clipboard me-1"></i>Copy</button>
+            <button class="btn btn-sm arc-btn-ghost"><i class="bi bi-pencil me-1"></i>Edit</button>
+          </div>
+        </div>
+        <div class="arc-card-body">
+          <!-- Confidence -->
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span style="font-size:.8rem; color:var(--arc-muted);">OCR Confidence</span>
+            <span style="font-size:.8rem; font-weight:600; color:#2e7d32;" id="confVal">—</span>
+          </div>
+          <div class="confidence-bar mb-3">
+            <div class="confidence-fill" id="confBar" style="width:0%"></div>
+          </div>
+
+          <div class="extracted-text" id="extractedText">Text will appear here after OCR extraction…Upload an image and click "Extract Text" to begin.</div>
+
+          <div id="extractActions" style="display:none;" class="d-flex gap-2 mt-3 flex-wrap">
+            <button class="btn btn-sm arc-btn-primary" onclick="location.href='{% url 'text_processing' %}'">
+              <i class="bi bi-cpu me-1"></i>Process Text
+            </button>
+            <button class="btn btn-sm arc-btn-outline" onclick="location.href='{% url 'summarization' %}'">
+              <i class="bi bi-card-text me-1"></i>Summarize
+            </button>
+            <button class="btn btn-sm arc-btn-outline" onclick="location.href='{% url 'notes' %}'">
+              <i class="bi bi-journal-plus me-1"></i>Add to Notes
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ OCR STATS ZONE ══════════════════════════════════════ -->
+      <section class="arc-card fade-in-up delay-2">
+        <div class="arc-card-header"><h6>📊 Extraction Stats</h6></div>
+        <div class="arc-card-body">
+          <div class="row g-2 text-center">
+            <div class="col-4">
+              <div style="font-size:1.5rem; font-weight:800; color:var(--arc-blue);" id="wordCount">—</div>
+              <div style="font-size:.75rem; color:var(--arc-muted);">Words</div>
+            </div>
+            <div class="col-4">
+              <div style="font-size:1.5rem; font-weight:800; color:#2e7d32;" id="lineCount">—</div>
+              <div style="font-size:.75rem; color:var(--arc-muted);">Lines</div>
+            </div>
+            <div class="col-4">
+              <div style="font-size:1.5rem; font-weight:800; color:#f57f17;" id="charCount2">—</div>
+              <div style="font-size:.75rem; color:var(--arc-muted);">Characters</div>
+            </div>
+          </div>
+          <hr class="divider my-3"/>
+          <div class="text-muted" style="font-size:.82rem;">
+            <i class="bi bi-lightbulb me-1 text-warning"></i>
+            Tip: For better accuracy, ensure good lighting and a straight angle when photographing text.
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+  const sampleText = `Chapter 3: Photosynthesis and Cellular Respiration
+
+Photosynthesis is the process by which green plants and some other organisms use sunlight to synthesize nutrients from carbon dioxide and water.
+
+Key Formula:
+6CO₂ + 6H₂O + Light Energy → C₆H₁₂O₆ + 6O₂
+
+The process occurs in two stages:
+1. Light-dependent reactions (Thylakoid membrane)
+2. Light-independent reactions (Calvin Cycle)
+
+Chlorophyll absorbs light primarily in the blue and red wavelengths while reflecting green light — which is why plants appear green.`;
+
+  function loadImg(inp) {
+    const f = inp.files[0]; if(!f) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const box = document.getElementById('previewBox');
+      box.innerHTML = `<img src="${e.target.result}" alt="preview"/>`;
+    };
+    reader.readAsDataURL(f);
+    document.getElementById('thumbRow').style.display='flex';
+    document.getElementById('imgTools').style.display='flex';
+  }
+  function ev(e){ e.preventDefault(); }
+  function dropImg(e){ e.preventDefault(); document.getElementById('imgInput').files = e.dataTransfer.files; loadImg(document.getElementById('imgInput')); }
+  function runOCR(){
+    document.getElementById('extractedText').textContent='🔍 Analyzing image…';
+    document.getElementById('confBar').style.width='0%';
+    document.getElementById('confVal').textContent='—';
+    setTimeout(()=>{
+      document.getElementById('extractedText').textContent = sampleText;
+      document.getElementById('confBar').style.width='94%';
+      document.getElementById('confVal').textContent='94% Confidence';
+      document.getElementById('wordCount').textContent='89';
+      document.getElementById('lineCount').textContent='18';
+      document.getElementById('charCount2').textContent='521';
+      document.getElementById('extractActions').style.display='flex';
+    }, 1800);
+  }
+  function copyText(e){
+  navigator.clipboard.writeText(document.getElementById('extractedText').textContent);
+  const btn = e.target.closest('button');
+  btn.innerHTML='<i class="bi bi-check me-1"></i>Copied!';
+  setTimeout(()=>btn.innerHTML='<i class="bi bi-clipboard me-1"></i>Copy', 1500);
+}
+</script>
+<script src="{% static 'js/navbar.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

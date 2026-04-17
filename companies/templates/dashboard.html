@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% load static %}
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ARC Reader – Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="{% static 'css/shared.css' %}" rel="stylesheet"/>
+</head>
+<body style="font-family:'Poppins',sans-serif;">
+<!-- NAVBAR -->
+<div id="arc-navbar"></div>
+
+<!-- PAGE TABS -->
+<div class="arc-page-tabs">
+  <ul class="nav">
+    <li class="nav-item">
+      <a class="nav-link active" href="{% url 'dashboard' %}">
+        <i class="bi bi-grid me-1"></i>Dashboard
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'text_input' %}">
+        <i class="bi bi-upload me-1"></i>Text Input
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'image_capture' %}">
+        <i class="bi bi-camera me-1"></i>Image Capture
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'text_processing' %}">
+        <i class="bi bi-cpu me-1"></i>Processing
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'summarization' %}">
+        <i class="bi bi-card-text me-1"></i>Summarize
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'notes' %}">
+        <i class="bi bi-journal-text me-1"></i>Notes
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'learning' %}">
+        <i class="bi bi-graph-up me-1"></i>Learning
+      </a>
+    </li>
+  </ul>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- ══ WELCOME ZONE ══════════════════════════════════════════ -->
+  <section class="mb-4 fade-in-up">
+    <div class="arc-card" style="background:linear-gradient(135deg,var(--arc-dark) 0%,var(--arc-accent) 100%); border:none; position:relative; overflow:hidden;">
+      <div style="position:absolute;right:-40px;top:-40px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,0.07);"></div>
+      <div style="position:absolute;right:80px;bottom:-60px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,0.05);"></div>
+      <div class="arc-card-body py-4">
+        <div class="row align-items-center g-3">
+          <div class="col-md-7">
+            <p class="text-white mb-1" style="opacity:.75;font-size:.85rem;">Good afternoon 👋</p>
+            <h3 class="text-white fw-800 mb-2">Welcome back, Hemant!</h3>
+            <p class="text-white mb-3" style="opacity:.8;font-size:.9rem;">You have <strong>2 documents</strong> in progress and <strong>5 new AI suggestions</strong> waiting.</p>
+            <div class="d-flex gap-2 flex-wrap">
+              <a href="{% url 'text_input' %}" class="btn btn-light">
+                <i class="bi bi-plus-circle me-1"></i>New Document
+              </a>
+              <a href="{% url 'learning' %}" class="btn btn-outline-light fw-600" style="border-radius:10px;font-size:.88rem;">
+                <i class="bi bi-play-fill me-1"></i>Continue Reading
+              </a>
+            </div>
+          </div>
+          <div class="col-md-5 text-end d-none d-md-block">
+            <div style="font-size:7rem;opacity:.25;position:relative;z-index:1;">📚</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ STAT CARDS ZONE ════════════════════════════════════════ -->
+  <section class="mb-4">
+    <div class="row g-3">
+      <div class="col-6 col-lg-3 fade-in-up delay-1">
+        <div class="stat-card">
+          <div class="d-flex align-items-start justify-content-between mb-3">
+            <div class="stat-icon" style="background:#e3f2fd;">📄</div>
+            <span class="arc-badge arc-badge-blue">+2 this week</span>
+          </div>
+          <div class="stat-value" style="color:var(--arc-blue);">24</div>
+          <div class="stat-label mt-1">Total Documents</div>
+          <div class="arc-progress mt-3"><div class="arc-progress-bar" style="width:60%"></div></div>
+          <div class="stat-bg">📄</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3 fade-in-up delay-2">
+        <div class="stat-card">
+          <div class="d-flex align-items-start justify-content-between mb-3">
+            <div class="stat-icon" style="background:#e8f5e9;">📝</div>
+            <span class="arc-badge arc-badge-green">+12 today</span>
+          </div>
+          <div class="stat-value" style="color:#2e7d32;">89</div>
+          <div class="stat-label mt-1">Notes Created</div>
+          <div class="arc-progress mt-3"><div class="arc-progress-bar" style="width:80%; background:linear-gradient(90deg,#2e7d32,#66bb6a);"></div></div>
+          <div class="stat-bg">📝</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3 fade-in-up delay-3">
+        <div class="stat-card">
+          <div class="d-flex align-items-start justify-content-between mb-3">
+            <div class="stat-icon" style="background:#fff9c4;">✨</div>
+            <span class="arc-badge arc-badge-amber">+8 new</span>
+          </div>
+          <div class="stat-value" style="color:#f57f17;">156</div>
+          <div class="stat-label mt-1">Highlights</div>
+          <div class="arc-progress mt-3"><div class="arc-progress-bar" style="width:70%; background:linear-gradient(90deg,#f57f17,#ffc107);"></div></div>
+          <div class="stat-bg">✨</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3 fade-in-up delay-4">
+        <div class="stat-card">
+          <div class="d-flex align-items-start justify-content-between mb-3">
+            <div class="stat-icon" style="background:#f3e5f5;">📊</div>
+            <span class="arc-badge arc-badge-purple">On track</span>
+          </div>
+          <div class="stat-value" style="color:#6a1b9a;">73%</div>
+          <div class="stat-label mt-1">Reading Progress</div>
+          <div class="arc-progress mt-3"><div class="arc-progress-bar" style="width:73%; background:linear-gradient(90deg,#6a1b9a,#ab47bc);"></div></div>
+          <div class="stat-bg">📊</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ MIDDLE ROW ════════════════════════════════════════════ -->
+  <div class="row g-3 mb-4">
+    <!-- Recent Activity -->
+    <div class="col-lg-8 fade-in-up">
+      <div class="arc-card h-100">
+        <div class="arc-card-header">
+          <h6>Recent Activity</h6>
+          <a href="#" class="arc-btn-ghost btn">View all <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="arc-card-body p-0">
+          <table class="table arc-table mb-0">
+            <thead>
+              <tr>
+                <th>Document</th>
+                <th>Action</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div style="width:34px;height:34px;border-radius:8px;background:var(--arc-light);display:flex;align-items:center;justify-content:center;font-size:.9rem;">📘</div>
+                    <div>
+                      <div class="fw-600" style="font-size:.87rem;">Machine Learning Basics</div>
+                      <div class="text-muted" style="font-size:.76rem;">PDF · 42 pages</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="arc-badge arc-badge-blue">Summarized</span></td>
+                <td class="text-muted" style="font-size:.83rem;">Today, 2:30 PM</td>
+                <td><span class="arc-badge arc-badge-green">Complete</span></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div style="width:34px;height:34px;border-radius:8px;background:#fff9c4;display:flex;align-items:center;justify-content:center;font-size:.9rem;">📄</div>
+                    <div>
+                      <div class="fw-600" style="font-size:.87rem;">Indian Constitution Ch. 4</div>
+                      <div class="text-muted" style="font-size:.76rem;">Text · 2,400 words</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="arc-badge arc-badge-amber">Highlighted</span></td>
+                <td class="text-muted" style="font-size:.83rem;">Yesterday</td>
+                <td><span class="arc-badge arc-badge-amber">In Progress</span></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div style="width:34px;height:34px;border-radius:8px;background:#fdecea;display:flex;align-items:center;justify-content:center;font-size:.9rem;">🖼</div>
+                    <div>
+                      <div class="fw-600" style="font-size:.87rem;">Chemistry Diagram Scan</div>
+                      <div class="text-muted" style="font-size:.76rem;">Image OCR · 3 pages</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="arc-badge arc-badge-purple">Extracted</span></td>
+                <td class="text-muted" style="font-size:.83rem;">Mon, Mar 29</td>
+                <td><span class="arc-badge arc-badge-green">Complete</span></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div style="width:34px;height:34px;border-radius:8px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:.9rem;">📝</div>
+                    <div>
+                      <div class="fw-600" style="font-size:.87rem;">Physics Notes – Chapter 3</div>
+                      <div class="text-muted" style="font-size:.76rem;">Notes · 12 entries</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="arc-badge arc-badge-green">Notes Added</span></td>
+                <td class="text-muted" style="font-size:.83rem;">Sun, Mar 28</td>
+                <td><span class="arc-badge arc-badge-blue">Review</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions + Progress -->
+    <div class="col-lg-4 d-flex flex-column gap-3">
+      <!-- Quick Actions -->
+      <div class="arc-card fade-in-up delay-1">
+        <div class="arc-card-header"><h6>Quick Actions</h6></div>
+        <div class="arc-card-body d-flex flex-column gap-2">
+          <a href="{% url 'text_input' %}" class="btn arc-btn-primary text-start d-flex align-items-center gap-2 py-2">
+            <i class="bi bi-cloud-upload"></i> Upload Document
+          </a>
+          <a href="{% url 'image_capture' %}" class="btn arc-btn-outline text-start d-flex align-items-center gap-2 py-2">
+            <i class="bi bi-camera"></i> Capture from Image
+          </a>
+          <a href="{% url 'summarization' %}" class="btn arc-btn-outline text-start d-flex align-items-center gap-2 py-2">
+            <i class="bi bi-card-text"></i> Generate Summary
+          </a>
+          <a href="{% url 'notes' %}" class="btn arc-btn-outline text-start d-flex align-items-center gap-2 py-2">
+            <i class="bi bi-journal-plus"></i> Create Note
+          </a>
+        </div>
+      </div>
+
+      <!-- Weekly Goal -->
+      <div class="arc-card fade-in-up delay-2">
+
+        <div class="arc-card-header"><h6>📅 Weekly Reading Goal</h6></div>
+        <div class="arc-card-body">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="section-sub">5 of 7 docs read</span>
+            <span class="fw-600" style="color:var(--arc-blue);font-size:.88rem;">71%</span>
+          </div>
+          <div class="arc-progress mb-3"><div class="arc-progress-bar" style="width:71%"></div></div>
+          <div class="d-flex justify-content-between mb-1">
+            <span class="section-sub">Notes this week</span>
+            <span class="fw-600" style="color:#2e7d32;font-size:.88rem;">34 / 50</span>
+          </div>
+          <div class="arc-progress"><div class="arc-progress-bar" style="width:68%; background:linear-gradient(90deg,#2e7d32,#66bb6a);"></div></div>
+          <div class="text-center mt-3">
+            <span class="arc-badge arc-badge-green" style="font-size:.8rem;">🔥 5 day streak!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ AI SUGGESTIONS ZONE ════════════════════════════════════ -->
+  <section class="fade-in-up">
+    <div class="arc-card">
+      <div class="arc-card-header">
+        <h6>🤖 AI Suggestions for You</h6>
+        <span class="arc-badge arc-badge-blue">5 new</span>
+      </div>
+      <div class="arc-card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="p-3 rounded-3 h-100" style="background:var(--arc-light); border:1.5px solid rgba(26,111,196,0.15);">
+              <div class="mb-2">🔑 <strong style="font-size:.88rem;">Key Concept Review</strong></div>
+              <p class="text-muted mb-2" style="font-size:.82rem;">You have 8 unreviewed keywords from "ML Basics". Practice them now.</p>
+              <a href="{% url 'text_processing' %}" class="arc-link" style="font-size:.82rem;">Review Keywords →</a>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 rounded-3 h-100" style="background:#e8f5e9; border:1.5px solid rgba(46,125,50,0.15);">
+              <div class="mb-2">📖 <strong style="font-size:.88rem;">Continue Reading</strong></div>
+              <p class="text-muted mb-2" style="font-size:.82rem;">Resume from page 18 of "Indian Constitution Ch. 4" where you left off.</p>
+              <a href="{% url 'learning' %}" class="arc-link" style="font-size:.82rem; color:#2e7d32;">Continue →</a>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 rounded-3 h-100" style="background:#fff9c4; border:1.5px solid rgba(245,127,23,0.15);">
+              <div class="mb-2">✍️ <strong style="font-size:.88rem;">Summary Ready</strong></div>
+              <p class="text-muted mb-2" style="font-size:.82rem;">AI has generated a 3-paragraph summary of "Chemistry Diagram Scan".</p>
+              <a href="{% url 'summarization' %}" class="arc-link" style="font-size:.82rem; color:#f57f17;">View Summary →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="{% static 'js/navbar.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
